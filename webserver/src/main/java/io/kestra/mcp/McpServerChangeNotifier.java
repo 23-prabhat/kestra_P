@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
 
+import io.kestra.core.mcp.models.McpServer;
 import io.kestra.core.mcp.models.McpServerClusterEventPayload;
 import io.kestra.core.models.flows.FlowInterface;
 import io.kestra.core.models.flows.GenericFlow;
@@ -104,7 +105,7 @@ public class McpServerChangeNotifier {
         log.debug("Flow id: {} changed; refreshing tools on {} MCP server(s)", flow.getId(), serverIdsToRefresh.size());
 
         for (String serverId : serverIdsToRefresh) {
-            mcpServerHandlerTransport.get().refreshTools(flow.getTenantId(), serverId)
+            mcpServerHandlerTransport.get().refreshTools(flow.getTenantId(), serverId, McpServer.ToolSource.FLOWS)
                 .doOnError(e -> log.error("Failed to refresh tools for server {}: {}", serverId, e.getMessage()))
                 .doOnSuccess((_) -> log.debug("Tool list change notification successfully sent serverId: {}", serverId))
                 .onErrorComplete()

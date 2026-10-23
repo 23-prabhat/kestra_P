@@ -12,6 +12,7 @@ import io.kestra.core.events.CrudEvent;
 import io.kestra.core.exceptions.InternalException;
 import io.kestra.core.executor.command.Create;
 import io.kestra.core.executor.command.ExecutionCommand;
+import io.kestra.core.mcp.models.McpServer;
 import io.kestra.core.models.AccessScope;
 import io.kestra.core.models.Label;
 import io.kestra.core.models.executions.Execution;
@@ -39,14 +40,20 @@ import io.micronaut.http.sse.Event;
 import io.modelcontextprotocol.server.McpAsyncServerExchange;
 import io.modelcontextprotocol.server.McpServerFeatures;
 import io.modelcontextprotocol.spec.McpSchema;
+import jakarta.inject.Named;
 import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+/**
+ * The {@link McpServer.ToolSource#FLOWS} tool source: exposes each enabled flow with an {@link McpToolTrigger}
+ * targeting a server as one of its tools, limited to the namespaces the caller may execute flows in.
+ */
 @Slf4j
 @Singleton
-public class McpToolService {
+@Named("FLOWS")
+public class McpToolService implements McpToolSource {
     private final DispatchQueueInterface<ExecutionCommand> executionCommandQueue;
     private final FlowRepositoryInterface flowRepositoryInterface;
     private final FlowToolSchemaMapper flowToolSchemaMapper;
@@ -56,7 +63,7 @@ public class McpToolService {
     private final FlowInputOutput flowInputOutput;
     private final FlowMetaStoreInterface flowMetaStore;
     private final ExecutionOutputService executionOutputService;
-    private final McpToolAccessControl accessControl;
+    private final McpFlowToolAccessControl accessControl;
     private final Cache<ToolHandlerCacheKey, McpServerFeatures.AsyncToolSpecification> asyncToolSpecificationCache;
 
     private static final McpSchema.CallToolResult FLOW_ERROR_CALL_TOOL_RESULT = McpSchema.CallToolResult.builder()
@@ -78,7 +85,7 @@ public class McpToolService {
         FlowInputOutput flowInputOutput,
         FlowMetaStoreInterface flowMetaStore,
         ExecutionOutputService executionOutputService,
-        McpToolAccessControl accessControl) {
+        McpFlowToolAccessControl accessControl) {
         this.executionCommandQueue = executionCommandQueue;
         this.flowRepositoryInterface = flowRepositoryInterface;
         this.flowToolSchemaMapper = flowToolSchemaMapper;
@@ -93,6 +100,12 @@ public class McpToolService {
             .maximumSize(mcpConfig.toolCacheConfig().maximumSize())
             .expireAfterAccess(mcpConfig.toolCacheConfig().expireAfterAccess())
             .build();
+    }
+
+    @Override
+    public McpToolView view(KestraMcpTransportContext context) {
+        AccessScope scope = accessControl.executableScope(context.getUserId(), context.getTenantId(), context.getServerId());
+        return new FlowToolView(this, context.getTenantId(), context.getServerId(), scope);
     }
 
     public List<McpServerFeatures.AsyncToolSpecification> listToolSpecsForServer(String tenantId, String serverId, AccessScope scope) {
@@ -279,6 +292,26 @@ public class McpToolService {
 
     private static Predicate<AbstractTrigger> isMcpTriggerTypeAndEnabledPredicate() {
         return trigger -> trigger.getClass().equals(McpToolTrigger.class) && !trigger.isDisabled();
+    }
+
+    /**
+     * Callers granted the same namespaces see the same tools, which keeps this to one server per distinct
+     * permission set rather than one per user.
+     */
+    private record FlowToolView(
+        McpToolService service,
+        String tenantId,
+        String serverId,
+        AccessScope scope) implements McpToolView {
+        @Override
+        public String cacheKey() {
+            return McpToolScope.cacheKey(scope);
+        }
+
+        @Override
+        public List<McpServerFeatures.AsyncToolSpecification> tools() {
+            return service.listToolSpecsForServer(tenantId, serverId, scope);
+        }
     }
 
     private record ToolHandlerCacheKey(

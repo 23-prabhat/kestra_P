@@ -172,7 +172,7 @@ class McpServerCacheTest {
     private static McpServer buildServer(String id) {
         return new McpServer(
             TENANT, id, "Original", null,
-            McpServer.ServerType.PRIVATE, McpServer.AuthType.BASIC, null, null,
+            McpServer.ServerType.PRIVATE, McpServer.AuthType.BASIC, null, null, null,
             false, false, false, null, null
         );
     }
@@ -180,7 +180,7 @@ class McpServerCacheTest {
     private static McpServer withDescription(McpServer original, String description) {
         return new McpServer(
             original.tenantId(), original.id(), description, original.instructions(),
-            original.serverType(), original.authType(), original.oauthProvider(),
+            original.serverType(), original.authType(), original.toolSource(), original.oauthProvider(),
             original.oauthScopesSupported(),
             original.disabled(), original.isDefault(), original.deleted(),
             original.created(), original.updated()

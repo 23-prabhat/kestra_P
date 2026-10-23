@@ -99,7 +99,7 @@ public class McpServerController {
         McpServer toSave = new McpServer(
             tenantId,
             mcpServer.id(), mcpServer.description(), mcpServer.instructions(),
-            mcpServer.serverType(), mcpServer.authType(), mcpServer.oauthProvider(),
+            mcpServer.serverType(), mcpServer.authType(), McpServer.ToolSource.FLOWS, mcpServer.oauthProvider(),
             mcpServer.oauthScopesSupported(),
             mcpServer.disabled(), false, false, null, null
         );
@@ -129,7 +129,7 @@ public class McpServerController {
         McpServer toSave = new McpServer(
             tenantId, id,
             mcpServer.description(), mcpServer.instructions(),
-            mcpServer.serverType(), mcpServer.authType(), mcpServer.oauthProvider(),
+            mcpServer.serverType(), mcpServer.authType(), existing.get().toolSource(), mcpServer.oauthProvider(),
             mcpServer.oauthScopesSupported(),
             mcpServer.disabled(), false, false, null, null
         );
@@ -219,7 +219,7 @@ public class McpServerController {
         McpServer toggled = new McpServer(
             tenantId, mcpServer.id(),
             mcpServer.description(), mcpServer.instructions(),
-            mcpServer.serverType(), mcpServer.authType(), mcpServer.oauthProvider(),
+            mcpServer.serverType(), mcpServer.authType(), mcpServer.toolSource(), mcpServer.oauthProvider(),
             mcpServer.oauthScopesSupported(),
             !mcpServer.disabled(), false, false, null, null
         );

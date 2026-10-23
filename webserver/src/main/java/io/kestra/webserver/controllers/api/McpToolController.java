@@ -80,6 +80,10 @@ public class McpToolController {
         if (mcpServer.get().disabled()) {
             return Mono.just(HttpResponse.status(HttpStatus.SERVICE_UNAVAILABLE));
         }
+        if (!handlerRegistry.supports(mcpServer.get().toolSource())) {
+            log.warn("MCP server '{}' needs a {} tool source, but none is registered", id, mcpServer.get().toolSource());
+            return Mono.just(HttpResponse.notFound());
+        }
 
         var transportContext = sessionFactory.build(
             tenantId, id, request.getHeaders().get(HttpHeaders.MCP_SESSION_ID), accessControl.callerId(request).orElse(null)

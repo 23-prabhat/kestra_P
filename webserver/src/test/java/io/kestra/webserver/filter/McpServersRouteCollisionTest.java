@@ -96,7 +96,7 @@ class McpServersRouteCollisionTest {
         savePublicServer("servers");
         McpServer body = new McpServer(
             TenantService.MAIN_TENANT, "servers2", "x", null,
-            McpServer.ServerType.PUBLIC, McpServer.AuthType.BASIC, null, null,
+            McpServer.ServerType.PUBLIC, McpServer.AuthType.BASIC, null, null, null,
             false, false, false, null, null
         );
 
@@ -121,7 +121,7 @@ class McpServersRouteCollisionTest {
     private void savePublicServer(String id) {
         mcpServerRepository.save(null, new McpServer(
             TenantService.MAIN_TENANT, id, "collision", null,
-            McpServer.ServerType.PUBLIC, McpServer.AuthType.BASIC, null, null,
+            McpServer.ServerType.PUBLIC, McpServer.AuthType.BASIC, null, null, null,
             false, false, false, null, null
         ));
     }

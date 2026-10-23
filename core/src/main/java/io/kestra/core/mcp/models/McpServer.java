@@ -38,6 +38,8 @@ public record McpServer(
 
     AuthType authType,
 
+    ToolSource toolSource,
+
     String oauthProvider,
 
     List<String> oauthScopesSupported,
@@ -85,7 +87,22 @@ public record McpServer(
     }
 
     /**
-     * Applies defaults for {@code serverType} and {@code authType}, and computes the read-only {@code isDefault} flag.
+     * Where the tools this server exposes come from.
+     */
+    public enum ToolSource {
+        /** Flows with an {@code McpToolTrigger} targeting this server. */
+        FLOWS,
+        /** Kestra's own platform tools. */
+        PLATFORM;
+
+        @JsonCreator
+        public static ToolSource fromString(final String value) {
+            return Enums.getForNameIgnoreCase(value, ToolSource.class);
+        }
+    }
+
+    /**
+     * Applies defaults for {@code serverType}, {@code authType} and {@code toolSource}, and computes the read-only {@code isDefault} flag.
      */
     public McpServer {
         if (serverType == null) {
@@ -93,6 +110,9 @@ public record McpServer(
         }
         if (authType == null) {
             authType = AuthType.BASIC;
+        }
+        if (toolSource == null) {
+            toolSource = ToolSource.FLOWS;
         }
         isDefault = DEFAULT_ID.equals(id);
     }
@@ -122,14 +142,14 @@ public record McpServer(
     public McpServer toDeleted() {
         return new McpServer(
             tenantId, id, description, instructions,
-            serverType, authType, oauthProvider, oauthScopesSupported, disabled, isDefault, true, created, updated
+            serverType, authType, toolSource, oauthProvider, oauthScopesSupported, disabled, isDefault, true, created, updated
         );
     }
 
     public McpServer withTimestamps(Instant created, Instant updated) {
         return new McpServer(
             tenantId, id, description, instructions,
-            serverType, authType, oauthProvider, oauthScopesSupported, disabled, isDefault, deleted, created, updated
+            serverType, authType, toolSource, oauthProvider, oauthScopesSupported, disabled, isDefault, deleted, created, updated
         );
     }
 }
