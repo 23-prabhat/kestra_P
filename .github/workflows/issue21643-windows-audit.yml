@@ -1,0 +1,47 @@
+name: Issue 21643 Windows verification
+
+on:
+  push:
+    branches:
+      - verification/21643-windows-audit
+
+permissions:
+  contents: read
+
+jobs:
+  windows-process-tests:
+    runs-on: windows-latest
+    timeout-minutes: 35
+    env:
+      TZ: UTC
+      JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6
+        with:
+          cache-read-only: true
+      - name: Run Windows process tests and distinct regression tests
+        shell: pwsh
+        run: .\gradlew.bat :core:test --tests "io.kestra.plugin.core.runner.ProcessWindowsTest" --tests "io.kestra.core.runners.pebble.filters.DistinctFilterTest" --no-daemon --max-workers=2 --console=plain
+      - name: Require all eleven tests to pass without skips
+        shell: pwsh
+        run: |
+          foreach ($entry in @(@("io.kestra.plugin.core.runner.ProcessWindowsTest", 2), @("io.kestra.core.runners.pebble.filters.DistinctFilterTest", 9))) {
+            [xml]$report = Get-Content "core/build/test-results/test/TEST-$($entry[0]).xml"
+            $suite = $report.testsuite
+            if ([int]$suite.tests -ne $entry[1] -or [int]$suite.skipped -ne 0 -or [int]$suite.failures -ne 0 -or [int]$suite.errors -ne 0) {
+              throw "Expected $($entry[1]) passing tests with no skips for $($entry[0])."
+            }
+          }
+      - name: Upload JUnit reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: issue-21643-windows-test-results
+          path: core/build/test-results/test/*.xml
+          if-no-files-found: warn
+          retention-days: 7
